@@ -1,0 +1,17 @@
+{
+  "agent": "greedy",
+  "n_games": 200,
+  "mean_score": 1295.06,
+  "median_score": 1179.5,
+  "max_score": 2929,
+  "mean_max_tile": 456.64,
+  "max_max_tile": 1024,
+  "pct_reaching": {
+    "512": 0.59,
+    "1024": 0.105,
+    "2048": 0.0,
+    "4096": 0.0,
+    "8192": 0.0
+  },
+  "mean_steps": 447.415
+}

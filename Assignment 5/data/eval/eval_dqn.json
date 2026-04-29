@@ -1,0 +1,19 @@
+{
+  "agent": "dqn",
+  "n_games": 100,
+  "mean_score": 342.09,
+  "median_score": 333.5,
+  "max_score": 605,
+  "mean_max_tile": 127.36,
+  "max_max_tile": 256,
+  "pct_reaching": {
+    "512": 0.0,
+    "1024": 0.0,
+    "2048": 0.0,
+    "4096": 0.0,
+    "8192": 0.0
+  },
+  "mean_steps": 133.75,
+  "episodes_to_first_1024": null,
+  "episodes_to_first_2048": null
+}
