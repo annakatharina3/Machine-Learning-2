@@ -59,39 +59,43 @@ A few small decisions matter enough to call out:
 
 ## 3. Results
 
-The numbers below come from the smoke runs that ship with the notebooks
-(DQN 200 episodes, N-tuple 300 episodes, 100-game greedy eval). The notebooks
-expose `EPISODES` so the same code reproduces the full curves overnight.
-*Replace these numbers with the values from the long runs on a publication
-read* — the relative ordering is what matters and is already visible after a
-few hundred episodes.
+Numbers below come from the runs shipped in the notebooks: DQN trained 5 000
+episodes (~25 min on MPS, with Double-DQN + reward scaling), N-tuple trained
+10 000 episodes (~55 min). Each agent is evaluated greedily on a fresh 300- or
+1 000-game test set with seeds disjoint from training.
 
-| Agent        | Mean score (100-game eval) | Mean max tile | P(reach 256) |
-| :----------- | -------------------------: | ------------: | -----------: |
-| random       |                       ~300 |          ~70  |          low |
-| greedy heur. |                      ~1 200 |         ~150  |     moderate |
-| DQN (smoke)  |                       ~320 |         ~120  |          low |
-| N-tuple (smoke) |                    ~800 |         ~280  |         high |
+| Agent | Mean score | Median | Mean max tile | P(≥512) | P(≥1024) | P(≥2048) | P(≥4096) |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| random            |   298 |   291 |   108 |   0% |   0% |   0% |   0% |
+| greedy heuristic  | 1 300 | 1 266 |   468 |  65% |  11% |   0% |   0% |
+| DQN (5 k ep)      |   311 |   296 |   109 |   0% |   0% |   0% |   0% |
+| **N-tuple (10 k ep)** | **3 270** | **3 178** | **1 222** |  **98%** |  **87%** |  **25%** | **0.7%** |
 
-Two things to read from this table — even at the smoke scale:
+The full table is in `data/eval/comparison.csv`. First 1 024 tile during
+N-tuple training: **episode 307**. First 2 048 tile: **episode 1 231**.
 
-1. **N-tuple > DQN at matched compute.** With ~300 episodes both agents have
-   essentially identical wall-clock budget on this hardware (MPS), but the
-   N-tuple is already producing higher-tile boards more often. DQN at this
-   point is still mostly random-acting with ε ≈ 1.0 and has only filled a
-   small replay buffer.
-2. **N-tuple > greedy.** The handcrafted greedy policy is a strong baseline
-   (1-step lookahead with monotonicity + empty cells), and the n-tuple beats
-   it from a few hundred TD updates. By contrast, the smoke-trained DQN does
-   not yet beat the greedy.
+Three things to read from this table:
 
-In the longer-budget runs that the notebooks support (DQN 50 k episodes,
-N-tuple 100 k+), prior work and the same patterns repeated across multiple
-seeds in this codebase reproduce the published S&J ordering: the n-tuple
-typically reaches the 2048 tile in ~50 % of games and 1024 in ~95 %, while a
-plain DQN with one-hot inputs plateaus well below the 1024 mark and shows much
-higher episode-to-episode variance. The headline plot for the writeup —
-overlaid rolling-100 returns — makes this concrete (`data/eval/fig_training_curves.png`).
+1. **N-tuple wins decisively.** It hits the win-condition tile (2 048) in
+   *one quarter of games* and the 1 024 tile in 87 % — well past the greedy
+   heuristic (which never reaches 2 048) and an order of magnitude above DQN
+   on mean score (3 270 vs 311).
+2. **DQN is essentially random.** After 5 000 episodes of Double-DQN with
+   reward scaling and a 70 %-of-training ε-decay, mean score is 311 vs 298 for
+   the uniform-random policy. Max tile distribution is also indistinguishable
+   from random: never reaches 512.
+3. **Greedy beats DQN by 4×.** The hand-coded heuristic with 1-step lookahead
+   over monotonicity + empty cells + corner reward outperforms the trained
+   DQN on every metric. This is the same observation as in (1) but worth
+   stating directly: a 30-line rule-based policy beats vanilla deep RL with
+   one-hot input on this game.
+
+The training curves (`data/eval/fig_training_curves.png`,
+`data/eval/training_dashboard.png`) show this concretely: the N-tuple's
+rolling-100 return climbs steadily from ~500 to ~3 000 over 10 k episodes; the
+DQN's rolling-100 return rises from ~100 to ~300 over 5 k episodes and then
+flatlines, with smooth-L1 loss continuing to grow as the value head fits the
+spread of returns it sees but cannot extract a useful policy.
 
 ## 4. Why does the linear method win?
 
@@ -119,15 +123,18 @@ convergence is real.
 
 ## 5. Limitations & next steps
 
-* The smoke runs in the notebooks are too short to be evidence on their own —
-  the headline numbers should be regenerated with `EPISODES = 50_000+`.
-* The DQN here has no double-Q, no dueling head, no prioritised replay; those
-  are known to help. The point of the comparison is *vanilla DQN vs. classical
-  n-tuple at the same budget*, but a stronger DQN baseline would tighten the
-  story.
-* The stretch — DQN over n-tuple features (the *generalised* hybrid the user
-  flagged out-of-scope for this assignment) — would directly test whether the
-  representation gap explains the result. That is the natural follow-up.
+* DQN was trained for 5 k episodes; the reference S&J n-tuple was trained
+  for 10 k. Even at 10× the budget the literature places vanilla DQN with
+  one-hot board inputs well below the n-tuple, but the gap reported here
+  is the lower bound, not the asymptote.
+* The DQN does include Double-Q and reward scaling, but no dueling head,
+  no prioritised replay, no n-step returns and no convolutional encoder.
+  A CNN over the 4×4×16 one-hot tensor would let the network exploit the
+  same translation structure the n-tuple gets via dihedral symmetry; the
+  CIG 2017+ literature reports CNN-DQN agents matching or beating S&J.
+* The stretch — DQN over n-tuple features (the hybrid the user flagged
+  out-of-scope) — would directly test whether the representation gap
+  explains the result. That is the natural follow-up.
 
 ## 6. Reproducing the figures
 

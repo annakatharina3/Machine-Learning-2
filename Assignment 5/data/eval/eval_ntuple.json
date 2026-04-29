@@ -1,19 +1,19 @@
 {
   "agent": "ntuple",
-  "n_games": 100,
-  "mean_score": 1010.22,
-  "median_score": 886.0,
-  "max_score": 2541,
-  "mean_max_tile": 356.48,
-  "max_max_tile": 1024,
+  "n_games": 300,
+  "mean_score": 3270.1666666666665,
+  "median_score": 3178.0,
+  "max_score": 7414,
+  "mean_max_tile": 1221.9733333333334,
+  "max_max_tile": 4096,
   "pct_reaching": {
-    "512": 0.4,
-    "1024": 0.03,
-    "2048": 0.0,
-    "4096": 0.0,
+    "512": 0.9833333333333333,
+    "1024": 0.87,
+    "2048": 0.25,
+    "4096": 0.006666666666666667,
     "8192": 0.0
   },
-  "mean_steps": 354.1,
-  "episodes_to_first_1024": 251,
-  "episodes_to_first_2048": null
+  "mean_steps": 1086.8033333333333,
+  "episodes_to_first_1024": 307,
+  "episodes_to_first_2048": 1231
 }

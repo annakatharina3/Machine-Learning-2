@@ -32,7 +32,7 @@ def _corner_bonus(board: np.ndarray) -> float:
 class GreedyAgent(Agent):
     name = "greedy"
 
-    def __init__(self, alpha: float = 1.0, beta: float = 2.7, gamma: float = 1.0,
+    def __init__(self, alpha: float = 1.0, beta: float = 5.0, gamma: float = 1.0,
                  seed: int | None = None):
         self.alpha = alpha
         self.beta = beta

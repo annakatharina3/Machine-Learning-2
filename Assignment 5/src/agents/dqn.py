@@ -77,7 +77,8 @@ class DQNAgent(Agent):
                  buffer_size: int = 100_000, batch_size: int = 512,
                  eps_start: float = 1.0, eps_end: float = 0.05,
                  eps_decay_episodes: int = 50_000,
-                 target_sync_steps: int = 1000):
+                 target_sync_steps: int = 1000,
+                 reward_scale: float = 0.1, double_dqn: bool = True):
         self.device = device or torch.device("cpu")
         self.online = QNetwork().to(self.device)
         self.target = QNetwork().to(self.device)
@@ -90,6 +91,8 @@ class DQNAgent(Agent):
         self.eps_end = eps_end
         self.eps_decay_episodes = eps_decay_episodes
         self.target_sync_steps = target_sync_steps
+        self.reward_scale = reward_scale
+        self.double_dqn = double_dqn
         self.episode_count = 0
         self.grad_steps = 0
         self.last_loss: float | None = None
@@ -114,17 +117,22 @@ class DQNAgent(Agent):
     def remember(self, board, action, reward, next_board, done, legal_next_mask):
         s = one_hot_log2(board)
         s2 = one_hot_log2(next_board)
-        self.buffer.add(s, action, reward, s2, float(done), legal_next_mask.astype(np.float32))
+        self.buffer.add(s, action, reward * self.reward_scale, s2,
+                        float(done), legal_next_mask.astype(np.float32))
 
     def learn(self) -> float | None:
         if self.buffer.size < self.batch_size:
             return None
         s, a, r, s2, d, legal2 = self.buffer.sample(self.batch_size, self.device)
         with torch.no_grad():
-            q2 = self.target(s2)
-            q2 = q2.masked_fill(legal2 < 0.5, -1e9)
-            max_q2 = q2.max(dim=1).values
-            target = r + self.gamma * max_q2 * (1.0 - d)
+            if self.double_dqn:
+                # Double DQN: select with online net, evaluate with target net.
+                q2_online = self.online(s2).masked_fill(legal2 < 0.5, -1e9)
+                a_star = q2_online.argmax(dim=1, keepdim=True)
+                next_q = self.target(s2).gather(1, a_star).squeeze(1)
+            else:
+                next_q = self.target(s2).masked_fill(legal2 < 0.5, -1e9).max(dim=1).values
+            target = r + self.gamma * next_q * (1.0 - d)
         q = self.online(s).gather(1, a.unsqueeze(1)).squeeze(1)
         loss = F.smooth_l1_loss(q, target)
         self.opt.zero_grad()

@@ -51,26 +51,39 @@ class NTupleNetwork:
         self.sym_groups = [tuple(_dihedral(p)) for p in patterns]
         self.weights = [np.zeros(16 ** len(p), dtype=np.float32) for p in patterns]
         self.num_lookups = sum(len(g) for g in self.sym_groups)
+        # Pre-stack symmetry coordinates and bit-shifts for vectorized indexing.
+        # _sym_rows[p] / _sym_cols[p] are (num_sym, pattern_len) intp arrays;
+        # _shifts[p] is (pattern_len,) int64.
+        self._sym_rows = []
+        self._sym_cols = []
+        self._shifts = []
+        for p, sym in zip(patterns, self.sym_groups):
+            self._sym_rows.append(np.array([[r for r, _ in cells] for cells in sym], dtype=np.intp))
+            self._sym_cols.append(np.array([[c for _, c in cells] for cells in sym], dtype=np.intp))
+            self._shifts.append(np.array([4 * (len(p) - 1 - i) for i in range(len(p))], dtype=np.int64))
 
-    @staticmethod
-    def _packed_idx(board: np.ndarray, cells) -> int:
-        idx = 0
-        for r, c in cells:
-            idx = (idx << 4) | int(board[r, c])
-        return idx
+    def _packed_indices(self, board: np.ndarray, p_idx: int) -> np.ndarray:
+        """Vectorized: returns (num_sym,) int64 packed indices for pattern p_idx."""
+        rows = self._sym_rows[p_idx]
+        cols = self._sym_cols[p_idx]
+        vals = board[rows, cols].astype(np.int64)              # (num_sym, plen)
+        return (vals << self._shifts[p_idx][None, :]).sum(axis=1)
 
     def value(self, board: np.ndarray) -> float:
         v = 0.0
-        for w, sym in zip(self.weights, self.sym_groups):
-            for cells in sym:
-                v += float(w[self._packed_idx(board, cells)])
+        for p_idx, w in enumerate(self.weights):
+            v += float(w[self._packed_indices(board, p_idx)].sum())
         return v
 
     def update(self, board: np.ndarray, delta: float, alpha: float) -> None:
-        """Add ``alpha * delta`` to every weight visited by ``board``."""
-        for w, sym in zip(self.weights, self.sym_groups):
-            for cells in sym:
-                w[self._packed_idx(board, cells)] += alpha * delta
+        """Add ``alpha * delta`` to every weight visited by ``board``.
+
+        Uses np.add.at because dihedral images of a *symmetric* board configuration
+        can collapse to the same packed index — the duplicate updates must accumulate.
+        """
+        contrib = alpha * delta
+        for p_idx, w in enumerate(self.weights):
+            np.add.at(w, self._packed_indices(board, p_idx), contrib)
 
     def save(self, path: str | Path) -> None:
         path = Path(path)
