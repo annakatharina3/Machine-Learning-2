@@ -1,6 +1,6 @@
 # Reinforcement-learning agents for 2048: deep nets vs. n-tuple TD
 
-**Florian Robrecht — Machine Learning 2, Assignment 5**
+**Florian Robrecht, Janin Jankovski, Anna Hartmann — Machine Learning 2, Assignment 5**
 
 ## 1. Question and setup
 
