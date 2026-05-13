@@ -4,7 +4,9 @@
       "Bash(uv pip *)",
       "Bash(python -c \"import pptx; print\\(pptx.__version__\\)\")",
       "Bash(python presentation/build_deck.py)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import json; nb=json.load\\(open\\(r'Assignment 4/Assignment4.ipynb', encoding='utf-8'\\)\\); [print\\(i, c['cell_type'], c.get\\('id','?'\\), '|', \\(''.join\\(c['source']\\)[:80] if isinstance\\(c['source'], list\\) else c['source'][:80]\\).replace\\(chr\\(10\\),' '\\)\\) for i,c in enumerate\\(nb['cells']\\)]\")",
+      "Bash(python -c \"import json; nb=json.load\\(open\\(r'Assignment 4/Assignment4.ipynb', encoding='utf-8'\\)\\); print\\('total cells:', len\\(nb['cells']\\)\\); [print\\(i, c['cell_type'], c.get\\('id','?'\\), '|', \\(''.join\\(c['source']\\)[:80] if isinstance\\(c['source'], list\\) else c['source'][:80]\\).replace\\(chr\\(10\\),' '\\)\\) for i,c in enumerate\\(nb['cells']\\)]\")"
     ]
   }
 }
